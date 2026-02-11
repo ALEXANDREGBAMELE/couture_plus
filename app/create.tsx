@@ -16,28 +16,35 @@ import { PrimaryButton } from "@/components/ui/primaryButton";
 import { Colors } from "@/constants/theme";
 
 /* =======================
-   METIER : MESURES
+   MESURES PAR TYPE
 ======================= */
 const MEASURES_BY_TYPE: Record<string, string[]> = {
   Chemise: ["Poitrine", "Manche", "Longueur"],
   Pantalon: ["Taille", "Hanche", "Longueur"],
   Robe: ["Poitrine", "Taille", "Hanche", "Longueur"],
+  Veste: ["Poitrine", "Taille", "Longueur", "Épaules"],
 };
 
 export default function CreateOrderScreen() {
-  const [type, setType] =
-    useState<keyof typeof MEASURES_BY_TYPE | null>(null);
-  const [measures, setMeasures] = useState<Record<string, string>>({});
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [allMeasures, setAllMeasures] = useState<
+    Record<string, Record<string, string>>
+  >({});
   const [modelPhoto, setModelPhoto] = useState<string | null>(null);
   const [fabricPhoto, setFabricPhoto] = useState<string | null>(null);
 
-  const handleMeasureChange = (key: string, value: string) => {
-    setMeasures({ ...measures, [key]: value });
+  const handleMeasureChange = (
+    type: string,
+    key: string,
+    value: string
+  ) => {
+    setAllMeasures({
+      ...allMeasures,
+      [type]: { ...(allMeasures[type] || {}), [key]: value },
+    });
   };
 
-  const pickImage = async (
-    setter: (uri: string) => void
-  ) => {
+  const pickImage = async (setter: (uri: string) => void) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
@@ -51,15 +58,7 @@ export default function CreateOrderScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* ================= HERO ================= */}
-        {/* <Image
-          source={require("@/assets/images/sewing.jpg")}
-          style={styles.hero}
-        /> */}
-
-        <ThemedText style={styles.title}>
-          Nouvelle commande
-        </ThemedText>
+        <ThemedText style={styles.title}>Nouvelle commande</ThemedText>
 
         {/* ================= CLIENT ================= */}
         <Section title="Client" icon="person-outline">
@@ -68,7 +67,6 @@ export default function CreateOrderScreen() {
             style={styles.input}
             placeholder="Ex : Kouadio Yao"
           />
-
           <Label text="Téléphone" />
           <TextInput
             style={styles.input}
@@ -85,22 +83,19 @@ export default function CreateOrderScreen() {
                 key={item}
                 style={[
                   styles.typeButton,
-                  type === item && styles.typeButtonActive,
+                  selectedType === item && styles.typeButtonActive,
                 ]}
-                onPress={() => {
-                  setType(item as any);
-                  setMeasures({});
-                }}
+                onPress={() => setSelectedType(item)}
               >
                 <Ionicons
                   name="cut-outline"
                   size={16}
-                  color={type === item ? "#fff" : "#6B7280"}
+                  color={selectedType === item ? "#fff" : "#6B7280"}
                 />
                 <ThemedText
                   style={[
                     styles.typeText,
-                    type === item && styles.typeTextActive,
+                    selectedType === item && styles.typeTextActive,
                   ]}
                 >
                   {item}
@@ -111,18 +106,21 @@ export default function CreateOrderScreen() {
         </Section>
 
         {/* ================= MESURES ================= */}
-        {type && (
-          <Section title="Mesures (cm)" icon="resize-outline">
-            {MEASURES_BY_TYPE[type].map((measure) => (
-              <View key={measure}>
+        {selectedType && (
+          <Section
+            title={`Mesures - ${selectedType} (cm)`}
+            icon="resize-outline"
+          >
+            {MEASURES_BY_TYPE[selectedType].map((measure) => (
+              <View key={measure} style={{ marginBottom: 10 }}>
                 <Label text={measure} />
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
                   placeholder={`Entrer ${measure}`}
-                  value={measures[measure] || ""}
+                  value={allMeasures[selectedType]?.[measure] || ""}
                   onChangeText={(v) =>
-                    handleMeasureChange(measure, v)
+                    handleMeasureChange(selectedType, measure, v)
                   }
                 />
               </View>
@@ -135,17 +133,12 @@ export default function CreateOrderScreen() {
           <PhotoPicker
             label="Photo du modèle"
             image={modelPhoto}
-            onPick={() =>
-              pickImage((uri) => setModelPhoto(uri))
-            }
+            onPick={() => pickImage((uri) => setModelPhoto(uri))}
           />
-
           <PhotoPicker
             label="Photo du tissu / pagne"
             image={fabricPhoto}
-            onPick={() =>
-              pickImage((uri) => setFabricPhoto(uri))
-            }
+            onPick={() => pickImage((uri) => setFabricPhoto(uri))}
           />
         </Section>
 
@@ -167,14 +160,21 @@ export default function CreateOrderScreen() {
           />
         </Section>
 
-        <PrimaryButton title="Enregistrer la commande (offline)" />
+        {/* ================= BOUTON ENREGISTRER ================= */}
+        <View style={{ marginHorizontal: 20, marginBottom: 40 }}>
+          <PrimaryButton
+            title="Enregistrer la commande"
+            style={styles.saveButton}
+            textStyle={styles.saveButtonText}
+          />
+        </View>
       </ScrollView>
     </ThemedView>
   );
 }
 
 /* =======================
-   COMPONENTS UI
+   COMPOSANTS UI
 ======================= */
 
 function Section({
@@ -189,14 +189,8 @@ function Section({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons
-          name={icon}
-          size={18}
-          color={Colors.light.tint}
-        />
-        <ThemedText style={styles.sectionTitle}>
-          {title}
-        </ThemedText>
+        <Ionicons name={icon} size={18} color={Colors.light.tint} />
+        <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
       </View>
       {children}
     </View>
@@ -217,21 +211,14 @@ function PhotoPicker({
   onPick: () => void;
 }) {
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 8, marginBottom: 12 }}>
       <Label text={label} />
-      <TouchableOpacity
-        style={styles.photoBox}
-        onPress={onPick}
-      >
+      <TouchableOpacity style={styles.photoBox} onPress={onPick}>
         {image ? (
           <Image source={{ uri: image }} style={styles.photo} />
         ) : (
           <>
-            <Ionicons
-              name="add"
-              size={32}
-              color="#9CA3AF"
-            />
+            <Ionicons name="add" size={32} color="#9CA3AF" />
             <ThemedText style={{ color: "#9CA3AF" }}>
               Ajouter une photo
             </ThemedText>
@@ -251,21 +238,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F3F4F6",
   },
-
-  hero: {
-    width: "100%",
-    height: 170,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-
   title: {
     fontSize: 26,
     fontWeight: "700",
     margin: 20,
     color: "#111827",
   },
-
   section: {
     backgroundColor: "#FFFFFF",
     padding: 16,
@@ -275,23 +253,20 @@ const styles = StyleSheet.create({
     gap: 12,
     elevation: 2,
   },
-
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
   },
-
   label: {
     fontSize: 13,
     color: "#6B7280",
+    marginBottom: 4,
   },
-
   input: {
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -299,18 +274,15 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: "#FAFAFA",
   },
-
   textArea: {
     height: 100,
     textAlignVertical: "top",
   },
-
   typeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
   },
-
   typeButton: {
     flexDirection: "row",
     gap: 6,
@@ -320,21 +292,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
-
   typeButtonActive: {
     backgroundColor: Colors.light.tint,
     borderColor: Colors.light.tint,
   },
-
   typeText: {
     color: "#374151",
   },
-
   typeTextActive: {
     color: "#fff",
     fontWeight: "600",
   },
-
   photoBox: {
     height: 140,
     borderRadius: 14,
@@ -345,9 +313,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
   },
-
   photo: {
     width: "100%",
     height: "100%",
+  },
+  saveButton: {
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 16,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
   },
 });
