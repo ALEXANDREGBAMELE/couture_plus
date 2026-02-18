@@ -14,6 +14,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { PrimaryButton } from "@/components/ui/primaryButton";
 import { Colors } from "@/constants/theme";
+import { createOrderOffline } from "@/database/orderRepository";
+import { useRouter } from "expo-router";
 
 /* =======================
    MESURES PAR TYPE
@@ -26,12 +28,22 @@ const MEASURES_BY_TYPE: Record<string, string[]> = {
 };
 
 export default function CreateOrderScreen() {
+ /* =======================
+     VARIABLE CLIENT
+  ======================= */
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [notes, setNotes] = useState("");
+
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [allMeasures, setAllMeasures] = useState<
     Record<string, Record<string, string>>
   >({});
   const [modelPhoto, setModelPhoto] = useState<string | null>(null);
   const [fabricPhoto, setFabricPhoto] = useState<string | null>(null);
+
+
 
   const handleMeasureChange = (
     type: string,
@@ -54,6 +66,46 @@ export default function CreateOrderScreen() {
       setter(result.assets[0].uri);
     }
   };
+const router = useRouter();
+const handleSaveOrder = () => {
+  if (!selectedType || !clientName) {
+    alert("Veuillez remplir les champs obligatoires");
+    return;
+  }
+
+  const measurements = Object.entries(allMeasures[selectedType] || {}).map(
+    ([label, value]) => ({
+      label,
+      value: Number(value),
+    })
+  );
+
+const orderData = {
+  title: selectedType,
+  client: { name: clientName, phone: clientPhone },
+  deliveryDate,
+  notes,
+  modelImage: modelPhoto,   // extraire le string
+  fabricImage: fabricPhoto, // extraire le string
+  measurements,                  // tableau de { label, value }
+};
+
+createOrderOffline(orderData as any); // cast en any pour contourner les types SQLite
+  alert("Commande enregistrée ✔️");
+  router.push("/");
+  // -------------------------
+  // RESET DES CHAMPS
+  // -------------------------
+  setClientName("");
+  setClientPhone("");
+  setDeliveryDate("");
+  setNotes("");
+  setSelectedType(null);
+  setAllMeasures({});
+  setModelPhoto(null);
+  setFabricPhoto(null);
+};
+
 
   return (
     <ThemedView style={styles.container}>
@@ -66,12 +118,16 @@ export default function CreateOrderScreen() {
           <TextInput
             style={styles.input}
             placeholder="Ex : Kouadio Yao"
+            value={clientName}
+            onChangeText={setClientName}
           />
           <Label text="Téléphone" />
           <TextInput
             style={styles.input}
             placeholder="07 00 00 00 00"
             keyboardType="phone-pad"
+            value={clientPhone}
+            onChangeText={setClientPhone}
           />
         </Section>
 
@@ -148,6 +204,8 @@ export default function CreateOrderScreen() {
           <TextInput
             style={styles.input}
             placeholder="Ex : 20/03/2026"
+            value={deliveryDate}
+            onChangeText={setDeliveryDate}
           />
         </Section>
 
@@ -157,6 +215,8 @@ export default function CreateOrderScreen() {
             style={[styles.input, styles.textArea]}
             placeholder="Instructions particulières..."
             multiline
+            value={notes}
+            onChangeText={setNotes}
           />
         </Section>
 
@@ -166,6 +226,7 @@ export default function CreateOrderScreen() {
             title="Enregistrer la commande"
             style={styles.saveButton}
             textStyle={styles.saveButtonText}
+            onPress={handleSaveOrder}
           />
         </View>
       </ScrollView>

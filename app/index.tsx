@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -14,47 +14,8 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
-
-/* ================= DATA ================= */
-
-const ordersData = [
-  {
-    id: "1",
-    title: "Robe dame",
-    client: "Marie Kouassi",
-    date: "2026-02-06",
-    status: "new",
-    modelImage: require("@/assets/images/model.jpg"),
-    fabricImage: require("@/assets/images/fabric.jpg"),
-  },
-  {
-    id: "2",
-    title: "Tenue homme",
-    client: "Koffi Yao",
-    date: "2026-02-05",
-    status: "progress",
-    modelImage: require("@/assets/images/model.jpg"),
-    fabricImage: require("@/assets/images/fabric.jpg"),
-  },
-  {
-    id: "3",
-    title: "Costume Homme",
-    client: "Koffi Yao",
-    date: "2026-02-05",
-    status: "progress",
-    modelImage: require("@/assets/images/model.jpg"),
-    fabricImage: require("@/assets/images/fabric.jpg"),
-  },
-  {
-    id: "4",
-    title: "Jupe",
-    client: "Francis Wodié",
-    date: "2026-02-01",
-    status: "done",
-    modelImage: require("@/assets/images/model.jpg"),
-    fabricImage: require("@/assets/images/fabric.jpg"),
-  },
-];
+import { db } from "@/database/database";
+import { getOrders } from "@/database/orderRepository";
 
 /* ================= HELPERS ================= */
 
@@ -89,20 +50,69 @@ const getStatusColor = (status: string) => {
 export default function HomeScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [notificationCount, setNotificationCount] = useState(3); // Exemple dynamique
+  const [notificationCount, setNotificationCount] = useState<number>(0);
 
-  /* KPI */
-  const kpi = useMemo(() => {
-    return {
-      total: ordersData.length,
-      new: ordersData.filter((o) => o.status === "new").length,
-      progress: ordersData.filter((o) => o.status === "progress").length,
-      done: ordersData.filter((o) => o.status === "done").length,
-    };
+
+  useEffect(() => {
+    fetchUnreadNotifications();
   }, []);
 
-  const filteredOrders = ordersData.filter((o) =>
-    o.title.toLowerCase().includes(search.toLowerCase())
+  const fetchUnreadNotifications = () => {
+    const result = db.getAllSync("SELECT * FROM notifications WHERE read = 0");
+    setNotificationCount(result.length);
+  };
+
+  // ou dans useFocusEffect pour rafraîchir automatiquement
+  useFocusEffect(
+    useCallback(() => {
+      fetchUnreadNotifications();
+    }, [])
+  );
+
+  /* KPI */
+  const [orders, setOrders] = useState<any[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const data = getOrders(); // tes commandes SQLite
+      setOrders(data);
+    }, [])
+  );
+
+  const kpi = useMemo(() => ({
+    total: orders.length,
+    new: orders.filter(o => o.status === "new").length,
+    progress: orders.filter(o => o.status === "progress").length,
+    done: orders.filter(o => o.status === "done").length,
+  }), [orders]);
+
+
+const filteredOrders = useMemo(() => {
+  if (!search.trim()) return orders;
+
+  const lowerSearch = search.toLowerCase();
+
+  return orders.filter(o => {
+    const orderDateStr = o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "";
+
+    return (
+      o.title.toLowerCase().includes(lowerSearch) ||
+      o.clientName.toLowerCase().includes(lowerSearch) ||
+      (o.clientPhone?.toLowerCase().includes(lowerSearch)) ||
+      orderDateStr.includes(lowerSearch)
+    );
+  });
+}, [search, orders]);
+
+
+
+  useFocusEffect(
+    useCallback(() => {
+
+      const data = getOrders();
+      setOrders(data);
+      
+    }, [])
   );
 
   return (
@@ -118,7 +128,10 @@ export default function HomeScreen() {
           {/* Notifications avec bulle */}
           <Pressable
             style={{ marginRight: 16 }}
-            onPress={() => router.push("/notifications")}
+            onPress={() => {
+              router.push("/notifications");
+              fetchUnreadNotifications(); // mettre à jour
+            }}
           >
             <Ionicons name="notifications-outline" size={28} color="#fff" />
             {notificationCount > 0 && (
@@ -183,33 +196,45 @@ export default function HomeScreen() {
         </View>
 
         {/* LIST */}
-        <FlatList
-          data={filteredOrders}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 120 }}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.orderCard}
-              onPress={() => router.push(`/orders/${item.id}`)}
-            >
-              <View style={styles.orderInfo}>
-                <ThemedText style={styles.orderTitle}>{item.title}</ThemedText>
-                <ThemedText style={styles.clientName}>{item.client}</ThemedText>
-                <ThemedText style={styles.orderDate}>{item.date}</ThemedText>
-                <ThemedText
-                  style={[styles.statusText, { color: getStatusColor(item.status) }]}
-                >
-                  {getStatusLabel(item.status)}
-                </ThemedText>
-              </View>
+      <FlatList
+  data={filteredOrders}
+  keyExtractor={(item) => item.id}
+  contentContainerStyle={{ paddingBottom: 120 }}
+  renderItem={({ item }) => (
+    <Pressable
+      style={styles.orderCard}
+      onPress={() =>
+        router.push({
+          pathname: "/orders/[id]",
+          params: { id: item.id.toString() },
+        })
+      }
+    >
+      <View style={styles.orderInfo}>
+        <ThemedText style={styles.orderTitle}>{item.title}</ThemedText>
+        <ThemedText style={styles.clientName}>{item.clientName}</ThemedText>
+        <ThemedText style={styles.orderDate}>
+          {new Date(item.orderDate).toLocaleDateString()}
+        </ThemedText>
+        <ThemedText
+          style={[styles.statusText, { color: getStatusColor(item.status) }]}
+        >
+          {getStatusLabel(item.status)}
+        </ThemedText>
+      </View>
 
-              <View style={styles.imagesBox}>
-                <Image source={item.modelImage} style={styles.smallImage} />
-                <Image source={item.fabricImage} style={styles.smallImage} />
-              </View>
-            </Pressable>
-          )}
-        />
+      <View style={styles.imagesBox}>
+        {item.modelImage && (
+          <Image source={{ uri: item.modelImage }} style={styles.smallImage} />
+        )}
+        {item.fabricImage && (
+          <Image source={{ uri: item.fabricImage }} style={styles.smallImage} />
+        )}
+      </View>
+    </Pressable>
+  )}
+/>
+
       </View>
 
       {/* ================= FAB ================= */}
@@ -294,18 +319,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 3,
     elevation: 2,
   },
-  kpiValue: { fontSize: 18, fontWeight: "800", marginTop: 4 },
+  kpiValue: { fontSize: 18, fontWeight: "800", marginTop: 4 , color: "#111827" },
   kpiLabel: { fontSize: 12, color: "#6B7280" },
 
   searchBox: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
-    elevation: 2,
-  },
+  flexDirection: "row",
+  alignItems: "center",   // <-- alignement vertical centré
+  backgroundColor: "#fff",
+  borderRadius: 14,
+  paddingHorizontal: 12,  // padding horizontal
+  paddingVertical: 8,     // padding vertical
+  marginBottom: 16,
+  gap: 8,
+  elevation: 2,
+},
   searchInput: { flex: 1 },
 
   orderCard: {

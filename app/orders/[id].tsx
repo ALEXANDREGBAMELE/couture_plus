@@ -11,9 +11,22 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { PrimaryButton } from "@/components/ui/primaryButton";
 import { Colors } from "@/constants/theme";
-
+import { getOrderById } from "@/database/orderRepository";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 
 export default function OrderDetailsScreen() {
+
+  const { id } = useLocalSearchParams<{ id: string }>();  
+  const [order, setOrder] = useState<any>(null);
+
+ useEffect(() => {
+    if (!id) return;
+    const data = getOrderById(id);
+    setOrder(data);
+  }, [id]);
+
+  if (!order) return null;
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -23,7 +36,7 @@ export default function OrderDetailsScreen() {
             <Ionicons name="person-circle-outline" size={64} color="#fff" />
             <View>
               <ThemedText style={styles.clientName}>
-                Marie Kouassi
+                {order.clientName}
               </ThemedText>
               <View style={styles.statusBadge}>
                 <Ionicons
@@ -32,7 +45,7 @@ export default function OrderDetailsScreen() {
                   color={Colors.light.tint}
                 />
                 <ThemedText style={styles.statusText}>
-                  En cours
+                  {order.status}
                 </ThemedText>
               </View>
             </View>
@@ -43,20 +56,18 @@ export default function OrderDetailsScreen() {
         <Card title="Références visuelles" icon="images-outline">
           <View style={styles.imageRow}>
             <View style={styles.imageBox}>
-              <Image
-                source={require("@/assets/images/model.jpg")}
-                style={styles.image}
-              />
+              {order.modelImage && (
+                <Image source={order.modelImage} style={styles.image} />
+              )}
               <ThemedText style={styles.imageLabel}>
                 Modèle
               </ThemedText>
             </View>
 
             <View style={styles.imageBox}>
-              <Image
-                source={require("@/assets/images/fabric.jpg")}
-                style={styles.image}
-              />
+              {order.fabricImage && (
+                <Image source={order.fabricImage} style={styles.image} />
+              )}
               <ThemedText style={styles.imageLabel}>
                 Tissu / Pagne
               </ThemedText>
@@ -66,28 +77,43 @@ export default function OrderDetailsScreen() {
 
         {/* ================= INFOS ================= */}
         <Card title="Informations générales" icon="information-circle-outline">
-          <InfoRow label="Vêtement" value="Robe dame" />
-          <InfoRow label="Date commande" value="10 mars 2026" />
-          <InfoRow label="Livraison prévue" value="20 mars 2026" />
+          <InfoRow
+            label="Vêtement"
+            value={order.title}
+          />
+
+          <InfoRow
+            label="Date commande"
+            value={new Date(order.createdAt).toLocaleDateString()}
+          />
+
+          <InfoRow
+            label="Livraison prévue"
+            value={
+              order.deliveryDate
+                ? new Date(order.deliveryDate).toLocaleDateString()
+                : "Non définie"
+            }
+          />
         </Card>
 
         {/* ================= MESURES ================= */}
         <Card title="Mesures (cm)" icon="resize-outline">
-          <InfoRow label="Poitrine" value="92" />
-          <InfoRow label="Taille" value="70" />
-          <InfoRow label="Hanche" value="98" />
-          <InfoRow label="Longueur" value="145" />
+          {order.measurements.map((m: any) => (
+            <InfoRow
+              key={m.id}
+              label={m.label}
+              value={m.value.toString()}
+            />
+          ))}
         </Card>
 
         {/* ================= NOTES ================= */}
         <Card title="Notes du couturier" icon="document-text-outline">
           <ThemedText style={styles.noteText}>
-            Robe pour mariage.  
-            Tissu fourni par la cliente.  
-            Coupe ajustée avec manches longues.
+            {order.notes ? order.notes : "Aucune note ajoutée"}
           </ThemedText>
         </Card>
-
         {/* ================= ACTIONS ================= */}
         <View style={styles.actions}>
           <PrimaryButton title="Modifier la commande" />
