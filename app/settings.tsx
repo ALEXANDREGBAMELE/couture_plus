@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-  Pressable,
   StyleSheet,
-  View,
+  View
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -16,19 +15,7 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* ================= HEADER ================= */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="#111827"
-          />
-        </Pressable>
-
-        <ThemedText style={styles.title}>
-          Paramètres
-        </ThemedText>
-      </View>
+     
 
       {/* ================= SYNCHRO ================= */}
       <SettingCard

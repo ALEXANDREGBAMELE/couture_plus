@@ -1,42 +1,82 @@
 import uuid from 'react-native-uuid';
 import { db } from './database';
 
-export type OrderLocal = {
+// export type OrderItemLocal = {
+//   id: string;
+//   clothType: string;
+//   modelImage?: string | null;
+//   fabricImage?: string | null;
+//   orderId: string;
+// };
+
+// export type MeasurementLocal = {
+//   id: string;
+//   label: string;
+//   value: number;
+//   orderItemId: string;
+// };
+
+// export type OrderDetails = {
+//   id: string;
+//   status: string;
+//   orderDate: string;
+//   deliveryDate?: string;
+//   notes?: string;
+//   clientName: string;
+//   clientPhone: string;
+//   orderItems: {
+//     id: string;
+//     clothType: string;
+//     modelImage?: { uri: string };
+//     fabricImage?: { uri: string };
+//     measurements: MeasurementLocal[];
+//   }[];
+// };
+
+export type OrderItemLocal = {
   id: string;
-  title: string;
-  status: string;
-  orderDate: string;
-  deliveryDate?: string;
-  notes?: string;
-  modelImage?: { uri: string } | undefined; // juste le chemin stocké en DB
-  fabricImage?: { uri: string } | undefined;
-  clientId: string;
-  reminderSent: number;
-  synced: number;
+  clothType: string;
+  modelImage?: string | null;
+  fabricImage?: string | null;
+  orderId: string;
 };
+
 
 export type MeasurementLocal = {
   id: string;
   label: string;
   value: number;
-  orderId: string;
-  synced: number;
+  orderItemId: string;
 };
 
-export type OrderDetails = OrderLocal & {
+export type OrderDetails = {
+  id: string;
+  status: "new" | "progress" | "done";
+  orderDate: string;
+  deliveryDate?: string | null;
+  notes?: string | null;
   clientName: string;
   clientPhone: string;
-  measurements: MeasurementLocal[];
-  modelImage?: { uri: string } | null; // pour l'affichage React Native
-  fabricImage?: { uri: string } | null;
+
+  orderItems: {
+    id: string;
+    clothType: string;
+    modelImage?: string | null;
+    fabricImage?: string | null;
+    measurements: MeasurementLocal[];
+  }[];
 };
 
-
+export type OrderStatus =
+  | "new"
+  | "in_progress"
+  | "delivered";
 // ===============================
 // INIT TABLES
 // ===============================
 
 export const initTables = () => {
+
   db.execSync(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
@@ -48,18 +88,26 @@ export const initTables = () => {
   `);
 
   db.execSync(`
-    CREATE TABLE IF NOT EXISTS orders (
+  CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    status TEXT,
+    orderDate TEXT,
+    deliveryDate TEXT,
+    notes TEXT,
+    clientId TEXT,
+    reminderSent INTEGER DEFAULT 0,
+    lastReminderDate TEXT,
+    synced INTEGER DEFAULT 0
+  );
+`);
+
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS order_items (
       id TEXT PRIMARY KEY,
-      title TEXT,
-      status TEXT,
-      orderDate TEXT,
-      deliveryDate TEXT,
-      notes TEXT,
+      clothType TEXT,
       modelImage TEXT,
       fabricImage TEXT,
-      clientId TEXT,
-      reminderSent INTEGER DEFAULT 0,
-      synced INTEGER DEFAULT 0
+      orderId TEXT
     );
   `);
 
@@ -68,8 +116,7 @@ export const initTables = () => {
       id TEXT PRIMARY KEY,
       label TEXT,
       value REAL,
-      orderId TEXT,
-      synced INTEGER DEFAULT 0
+      orderItemId TEXT
     );
   `);
 
@@ -85,78 +132,134 @@ export const initTables = () => {
   `);
 };
 
+
 // ===============================
 // CREATE ORDER OFFLINE
 // ===============================
 
 export const createOrderOffline = (data: {
-  title: string;
   client: { name: string; phone: string };
   deliveryDate: string;
+  status: string;
+  orderDate: string;
   notes?: string;
-  modelImage?: string;
-  fabricImage?: string;
-  measurements: { label: string; value: number }[];
+  orderItems: {
+    clothType: string;
+    modelImage?: string;
+    fabricImage?: string;
+    measurements: { label: string; value: number }[];
+  }[];
 }) => {
+
   const clientId = uuid.v4().toString();
   const orderId = uuid.v4().toString();
   const now = new Date().toISOString();
 
-  const run = (sql: string, params: (string | number)[]) => db.runSync(sql, params);
+  const run = (sql: string, params: (string | number)[]) =>
+    db.runSync(sql, params);
 
-  // Client
+  // CLIENT
   run(
     `INSERT INTO clients (id,name,phone,createdAt,synced) VALUES (?,?,?,?,0)`,
     [clientId, data.client.name, data.client.phone, now]
   );
 
-  // Order
+  // ORDER
   run(
-    `INSERT INTO orders (id,title,status,orderDate,deliveryDate,notes,modelImage,fabricImage,clientId,reminderSent,synced)
-     VALUES (?,?,?,?,?,?,?,?,?,?,0)`,
+    `INSERT INTO orders (id,status,orderDate,deliveryDate,notes,clientId,reminderSent,synced)
+     VALUES (?,?,?,?,?,?,0,0)`,
     [
       orderId,
-      data.title,
-      'NEW',
-      now,
+      data.status,
+      data.orderDate || now,
       data.deliveryDate,
-      data.notes || '',
-      data.modelImage || '',
-      data.fabricImage || '',
+      data.notes || "",
       clientId,
-      0,
     ]
   );
 
-  // Measurements
-  data.measurements.forEach((m) => {
-    run(
-      `INSERT INTO measurements (id,label,value,orderId,synced) VALUES (?,?,?,?,0)`,
-      [uuid.v4().toString(), m.label, m.value, orderId]
-    );
-  });
+  // ORDER ITEMS
+  data.orderItems.forEach(item => {
 
-  // Notification
-  run(
-    `INSERT INTO notifications (id,orderId,title,description,date,read) VALUES (?,?,?,?,?,0)`,
-    [uuid.v4().toString(), orderId, 'Nouvelle commande reçue', `Commande de ${data.client.name} ajoutée.`, now]
-  );
+    const itemId = uuid.v4().toString();
+
+    run(
+      `INSERT INTO order_items (id,clothType,modelImage,fabricImage,orderId)
+       VALUES (?,?,?,?,?)`,
+      [
+        itemId,
+        item.clothType,
+        item.modelImage || "",
+        item.fabricImage || "",
+        orderId,
+      ]
+    );
+
+    // MEASUREMENTS
+    item.measurements.forEach(m => {
+      run(
+        `INSERT INTO measurements (id,label,value,orderItemId)
+         VALUES (?,?,?,?)`,
+        [
+          uuid.v4().toString(),
+          m.label,
+          m.value,
+          itemId,
+        ]
+      );
+    });
+
+  });
 };
+
 
 // ===============================
 // GET ORDERS
 // ===============================
 
-export const getOrders = () => {
-  return db.getAllSync(`
-    SELECT o.*, c.name as clientName
+export const getOrders = (): OrderDetails[] => {
+
+  const orders = db.getAllSync(`
+    SELECT o.*, c.name as clientName, c.phone as clientPhone
     FROM orders o
     JOIN clients c ON o.clientId = c.id
     ORDER BY o.orderDate DESC
-  `) as OrderDetails[];
+  `) as any[];
+
+  return orders.map(order => {
+
+    const items = db.getAllSync(
+      `SELECT * FROM order_items WHERE orderId = ?`,
+      [order.id]
+    ) as any[];
+
+    const orderItems = items.map(item => {
+
+      const measurements = db.getAllSync(
+        `SELECT * FROM measurements WHERE orderItemId = ?`,
+        [item.id]
+      ) as MeasurementLocal[];
+
+      return {
+        id: item.id,
+        clothType: item.clothType,
+        modelImage: item.modelImage || null,
+        fabricImage: item.fabricImage || null,
+        measurements: measurements || [],
+      };
+    });
+
+    return {
+      ...order,
+      status: order.status.toLowerCase(), // sécurise NEW -> new
+      orderItems: orderItems || [],
+    };
+  });
 };
 
+
 export const getOrderById = (id: string): OrderDetails | null => {
+
   const order = db.getFirstSync(
     `
     SELECT o.*, c.name as clientName, c.phone as clientPhone
@@ -165,22 +268,38 @@ export const getOrderById = (id: string): OrderDetails | null => {
     WHERE o.id = ?
   `,
     [id]
-  ) as OrderLocal & { clientName: string; clientPhone: string } | null;
+  ) as any;
 
   if (!order) return null;
 
-  const measurements = db.getAllSync(
-    `SELECT * FROM measurements WHERE orderId = ?`,
+  const items = db.getAllSync(
+    `SELECT * FROM order_items WHERE orderId = ?`,
     [id]
-  ) as MeasurementLocal[];
+  ) as any[];
+
+  const orderItems = items.map(item => {
+
+    const measurements = db.getAllSync(
+      `SELECT * FROM measurements WHERE orderItemId = ?`,
+      [item.id]
+    ) as MeasurementLocal[];
+
+    return {
+      id: item.id,
+      clothType: item.clothType,
+      modelImage: item.modelImage || null,
+      fabricImage: item.fabricImage || null,
+      measurements: measurements || [],
+    };
+  });
 
   return {
     ...order,
-    measurements,
-    modelImage: order.modelImage ? { uri: order.modelImage as any } : undefined,
-    fabricImage: order.fabricImage ? { uri: order.fabricImage  as any} : undefined,
+    status: order.status.toLowerCase(),
+    orderItems: orderItems || [],
   };
 };
+
 
 // ===============================
 // SYNC & DELETE
@@ -191,8 +310,29 @@ export const getUnsyncedOrders = () => db.getAllSync(`SELECT * FROM orders WHERE
 export const markOrderAsSynced = (id: string) => db.runSync(`UPDATE orders SET synced = 1 WHERE id = ?`, [id]);
 
 export const deleteOrderOffline = (id: string) => {
-  db.runSync(`DELETE FROM measurements WHERE orderId = ?`, [id]);
+  const items = db.getAllSync(
+    `SELECT id FROM order_items WHERE orderId = ?`,
+    [id]
+  ) as any[];
+
+  items.forEach(item => {
+    db.runSync(
+      `DELETE FROM measurements WHERE orderItemId = ?`,
+      [item.id]
+    );
+  });
+
+  db.runSync(`DELETE FROM order_items WHERE orderId = ?`, [id]);
   db.runSync(`DELETE FROM orders WHERE id = ?`, [id]);
+};
+
+export const markOrderAsDelivered = (id: string): void => {
+  try {
+    db.runSync(`UPDATE orders SET status = ? WHERE id = ?`, ["delivered", id]);
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la commande :", error);
+    throw error;
+  }
 };
 
 export const resetDatabase = () => {
@@ -204,10 +344,5 @@ export const resetDatabase = () => {
   db.execSync(`DROP TABLE IF EXISTS orders;`);
   db.execSync(`DROP TABLE IF EXISTS clients;`);
 
-  console.log("Toutes les tables ont été supprimées ✔️");
 
-  // Recréer les tables avec les champs corrects
-  initTables();
-
-  console.log("Toutes les tables ont été recréées ✔️");
 };

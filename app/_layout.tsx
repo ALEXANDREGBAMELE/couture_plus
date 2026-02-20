@@ -1,13 +1,12 @@
 import { Colors } from "@/constants/theme";
-import { initTables } from "@/database/orderRepository";
+import { initTables, resetDatabase } from "@/database/orderRepository";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 
 export default function RootLayout() {
   useEffect(() => {
-    console.log("🔄 Création des tables...");
+    resetDatabase();
     initTables();
-    console.log("✔️ Tables créées avec succès !");
   }, []);
 
   return (
@@ -28,7 +27,7 @@ export default function RootLayout() {
       />
 
       <Stack.Screen
-        name="create-order"
+        name="create"
         options={{ title: "Nouvelle commande" }}
       />
 
