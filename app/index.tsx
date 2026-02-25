@@ -75,8 +75,6 @@ export default function HomeScreen() {
   useCallback(() => {
     fetchUnreadNotifications();
     setOrders(getOrders());
-    console.log("order : ", orders);
-    
   }, [])
 );
 

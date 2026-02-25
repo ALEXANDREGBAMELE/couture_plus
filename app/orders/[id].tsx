@@ -57,47 +57,47 @@ export default function OrderDetailsScreen() {
                   color={Colors.light.tint}
                 />
                 <ThemedText style={styles.statusText}>
-                   {getStatusLabel(order.status)}
+                  {getStatusLabel(order.status)}
                 </ThemedText>
               </View>
             </View>
           </View>
         </View>
 
-       
-       {/* ================= INFOS ================= */}
-<Card
-  title="Informations générales"
-  icon="information-circle-outline"
-  style={{ marginHorizontal: 20 }}
-  rightAction={
-    <TouchableOpacity
-      activeOpacity={0.7}
-     onPress={() => Alert.alert("Info", "Fonctionnalité à venir")}
-      style={{
-        padding: 6,
-        borderRadius: 20,
-        backgroundColor: "#F3F4F6",
-      }}
-    >
-      <Ionicons name="create-outline" size={18} color="#374151" />
-    </TouchableOpacity>
-  }
->
-  <InfoRow label="Vêtement" value={order.title || "-"} />
-  <InfoRow
-    label="Date commande"
-    value={new Date(order.orderDate).toLocaleDateString()}
-  />
-  <InfoRow
-    label="Livraison prévue"
-    value={
-      order.deliveryDate
-        ? new Date(order.deliveryDate).toLocaleDateString()
-        : "Non définie"
-    }
-  />
-</Card>
+
+        {/* ================= INFOS ================= */}
+        <Card
+          title="Informations générales"
+          icon="information-circle-outline"
+          style={{ marginHorizontal: 20 }}
+          rightAction={
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => Alert.alert("Info", "Fonctionnalité à venir")}
+              style={{
+                padding: 6,
+                borderRadius: 20,
+                backgroundColor: "#F3F4F6",
+              }}
+            >
+              <Ionicons name="create-outline" size={18} color="#374151" />
+            </TouchableOpacity>
+          }
+        >
+          <InfoRow label="Vêtement" value={order.title || "-"} />
+          <InfoRow
+            label="Date commande"
+            value={new Date(order.orderDate).toLocaleDateString()}
+          />
+          <InfoRow
+            label="Livraison prévue"
+            value={
+              order.deliveryDate
+                ? new Date(order.deliveryDate).toLocaleDateString()
+                : "Non définie"
+            }
+          />
+        </Card>
 
         {/* ================= ARTICLES ================= */}
         <FlatList
@@ -111,23 +111,23 @@ export default function OrderDetailsScreen() {
 
             return (
               <Card
-  key={item.id}
-  title={item.clothType}
-  icon="shirt-outline"
-  rightAction={
-    <TouchableOpacity
-      onPress={() => Alert.alert("Info", "Fonctionnalité à venir")}
-      style={{
-        padding: 6,
-        borderRadius: 20,
-        backgroundColor: "#F3F4F6",
-      }}
-      
-    >
-      <Ionicons name="create-outline" size={18} color="#374151" />
-    </TouchableOpacity>
-  }
->
+                key={item.id}
+                title={item.clothType}
+                icon="shirt-outline"
+                rightAction={
+                  <TouchableOpacity
+                    onPress={() => Alert.alert("Info", "Fonctionnalité à venir")}
+                    style={{
+                      padding: 6,
+                      borderRadius: 20,
+                      backgroundColor: "#F3F4F6",
+                    }}
+
+                  >
+                    <Ionicons name="create-outline" size={18} color="#374151" />
+                  </TouchableOpacity>
+                }
+              >
                 {/* Images côte à côte */}
                 {images.length > 0 ? (
                   <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
@@ -185,53 +185,53 @@ export default function OrderDetailsScreen() {
           </ThemedText>
         </Card>
 
-          {/* ================= ACTIONS ================= */}
+        {/* ================= ACTIONS ================= */}
         <View style={styles.actions}>
           <TouchableOpacity
-  style={[
-    styles.secondaryBtn,
-    (order.status === "in_progress" || order.status === "delivered") && {
-      opacity: 0.5,
-    },
-  ]}
-  disabled={order.status === "in_progress" || order.status === "delivered"}
-  onPress={() => {
-    Alert.alert(
-      "Confirmation",
-      "Voulez-vous marquer cette commande comme en cours de traitement ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Oui",
-          onPress: () => {
-            try {
-              markOrderAsProcessing(order.id);
+            style={[
+              styles.secondaryBtn,
+              (order.status === "in_progress" || order.status === "delivered") && {
+                opacity: 0.5,
+              },
+            ]}
+            disabled={order.status === "in_progress" || order.status === "delivered"}
+            onPress={() => {
               Alert.alert(
-                "Succès",
-                "La commande est maintenant en cours de traitement."
+                "Confirmation",
+                "Voulez-vous marquer cette commande comme en cours de traitement ?",
+                [
+                  { text: "Annuler", style: "cancel" },
+                  {
+                    text: "Oui",
+                    onPress: () => {
+                      try {
+                        markOrderAsProcessing(order.id);
+                        Alert.alert(
+                          "Succès",
+                          "La commande est maintenant en cours de traitement."
+                        );
+                        setOrder({ ...order, status: "in_progress" });
+                      } catch (error) {
+                        Alert.alert(
+                          "Erreur",
+                          "Impossible de mettre à jour la commande."
+                        );
+                      }
+                    },
+                  },
+                ]
               );
-              setOrder({ ...order, status: "in_progress" });
-            } catch (error) {
-              Alert.alert(
-                "Erreur",
-                "Impossible de mettre à jour la commande."
-              );
-            }
-          },
-        },
-      ]
-    );
-  }}
->
-  <Ionicons
-    name="construct-outline"
-    size={18}
-    color={Colors.light.tint}
-  />
-  <ThemedText style={styles.secondaryText}>
-    Marquer en cours
-  </ThemedText>
-</TouchableOpacity>
+            }}
+          >
+            <Ionicons
+              name="construct-outline"
+              size={18}
+              color={Colors.light.tint}
+            />
+            <ThemedText style={styles.secondaryText}>
+              Marquer en cours
+            </ThemedText>
+          </TouchableOpacity>
 
           {/* Bouton Marquer comme livrée */}
           <TouchableOpacity
@@ -422,18 +422,18 @@ const styles = StyleSheet.create({
   secondaryText: { color: Colors.light.tint, fontWeight: "600", fontSize: 14 },
 
   editBtn: {
-  flexDirection: "row",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: 6, // espace entre l'icône et le texte
-  padding: 14,
-  borderRadius: 14,
-  backgroundColor: Colors.light.tint, // orange
-},
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6, // espace entre l'icône et le texte
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: Colors.light.tint, // orange
+  },
 
-editText: {
-  color: "#fff",
-  fontWeight: "600",
-  fontSize: 14,
-},
+  editText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
 });
