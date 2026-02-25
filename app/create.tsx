@@ -20,11 +20,97 @@ import { Colors } from "@/constants/theme";
 import { createOrderOffline } from "@/database/orderRepository";
 import { useRouter } from "expo-router";
 /* ===================== MESURES ===================== */
+/* ===================== MESURES ===================== */
+const MEASUREMENT_LABELS: Record<string, string> = {
+  chest: "Poitrine",
+  waist: "Taille",
+  hip: "Hanche",
+  dress_length: "Longueur robe",
+  bust_length: "Longueur buste",
+  skirt_length: "Longueur jupe",
+  back_width: "Carrure dos",
+  shoulder: "Épaule",
+  sleeve_length: "Longueur manche",
+  arm_circumference: "Tour de bras",
+  wrist: "Poignet",
+  neck: "Cou",
+  bust_height: "Hauteur poitrine",
+  bust_distance: "Écart poitrine",
+  pant_length: "Longueur pantalon",
+  inseam: "Entrejambe",
+  thigh: "Cuisse",
+  knee: "Genou",
+  bottom: "Bas",
+  front_rise: "Montant devant",
+  back_rise: "Montant derrière",
+  jacket_length: "Longueur veste",
+  camisole_length: "Longueur camisole",
+  boubou_length: "Longueur boubou",
+  sleeve_width: "Largeur manche",
+  skirt_waist: "Taille jupe",
+  skirt_hip: "Hanche jupe",
+};
+
 const MEASURES_BY_TYPE: Record<string, string[]> = {
-  Chemise: ["Poitrine", "Manche", "Longueur"],
-  Pantalon: ["Taille", "Hanche", "Longueur"],
-  Robe: ["Poitrine", "Taille", "Hanche", "Longueur"],
-  Veste: ["Poitrine", "Taille", "Longueur", "Épaules"],
+  robe: [
+    "chest",
+    "waist",
+    "hip",
+    "dress_length",
+    "bust_height",
+    "bust_distance",
+    "shoulder",
+    "sleeve_length",
+  ],
+  pantalon: [
+    "waist",
+    "hip",
+    "pant_length",
+    "inseam",
+    "thigh",
+    "knee",
+    "bottom",
+    "front_rise",
+    "back_rise",
+  ],
+  chemise: [
+    "chest",
+    "waist",
+    "shoulder",
+    "sleeve_length",
+    "neck",
+    "back_width",
+  ],
+  veste: [
+    "chest",
+    "waist",
+    "shoulder",
+    "sleeve_length",
+    "jacket_length",
+  ],
+  boubou: [
+    "chest",
+    "waist",
+    "hip",
+    "boubou_length",
+    "sleeve_length",
+    "shoulder",
+  ],
+  jupe: [
+    "waist",
+    "hip",
+    "skirt_length",
+    "skirt_waist",
+    "skirt_hip",
+  ],
+  camisole: [
+    "chest",
+    "waist",
+    "hip",
+    "camisole_length",
+    "bust_height",
+    "bust_distance",
+  ],
 };
 
 export default function CreateOrderScreen() {
@@ -288,11 +374,17 @@ export default function CreateOrderScreen() {
             {Object.keys(MEASURES_BY_TYPE).map(type => (
               <TouchableOpacity
                 key={type}
-                style={[styles.typeButton, currentType === type && styles.typeButtonSelected]}
+                style={[
+                  styles.typeButton,
+                  currentType === type && styles.typeButtonSelected
+                ]}
                 onPress={() => setCurrentType(type)}
               >
-                <ThemedText style={currentType === type ? styles.typeTextSelected : styles.typeText}>
-                  {type}
+                <ThemedText
+                  style={currentType === type ? styles.typeTextSelected : styles.typeText}
+                >
+                  
+                  {type.charAt(0).toUpperCase() + type.slice(1)} {/* Capitalise le premier lettre */}
                 </ThemedText>
               </TouchableOpacity>
             ))}
@@ -306,14 +398,14 @@ export default function CreateOrderScreen() {
         {/* ================= MESURES & PHOTOS ================= */}
         {orderItems.map(item => (
           <Section key={item.id} title={`Mesures - ${item.clothType}`} icon="resize-outline">
-            {MEASURES_BY_TYPE[item.clothType].map(measure => (
-              <View key={measure}>
-                <Label text={measure} required />
+            {MEASURES_BY_TYPE[item.clothType]?.map(key => (
+              <View key={key}>
+                <Label text={MEASUREMENT_LABELS[key]} required />
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
-                  value={item.measurements?.[measure] || ""}
-                  onChangeText={v => handleMeasureChange(item.id, measure, v)}
+                  value={item.measurements?.[key] || ""}
+                  onChangeText={v => handleMeasureChange(item.id, key, v)}
                 />
               </View>
             ))}

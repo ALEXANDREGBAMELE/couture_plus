@@ -20,7 +20,7 @@ import { getOrders } from "@/database/orderRepository";
 
 /* ================= HELPERS ================= */
 
-const getStatusLabel = (status: string) => {
+export const getStatusLabel = (status: string) => {
   switch (status) {
     case "new":
       return "Nouvelle";
@@ -75,6 +75,8 @@ export default function HomeScreen() {
   useCallback(() => {
     fetchUnreadNotifications();
     setOrders(getOrders());
+    console.log("order : ", orders);
+    
   }, [])
 );
 

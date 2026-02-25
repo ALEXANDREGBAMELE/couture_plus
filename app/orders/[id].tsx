@@ -12,12 +12,12 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { PrimaryButton } from "@/components/ui/primaryButton";
 import { Colors } from "@/constants/theme";
-import { getOrderById, markOrderAsDelivered } from "@/database/orderRepository";
+import { getOrderById, markOrderAsDelivered, markOrderAsProcessing } from "@/database/orderRepository";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
+import { getStatusLabel } from "../index";
 
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,6 +37,8 @@ export default function OrderDetailsScreen() {
 
   if (!order) return null;
 
+
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -55,29 +57,47 @@ export default function OrderDetailsScreen() {
                   color={Colors.light.tint}
                 />
                 <ThemedText style={styles.statusText}>
-                  {order.status}
+                   {getStatusLabel(order.status)}
                 </ThemedText>
               </View>
             </View>
           </View>
         </View>
 
-        {/* ================= INFOS ================= */}
-        <Card title="Informations générales" icon="information-circle-outline">
-          <InfoRow label="Vêtement" value={order.title || "-"} />
-          <InfoRow
-            label="Date commande"
-            value={new Date(order.orderDate).toLocaleDateString()}
-          />
-          <InfoRow
-            label="Livraison prévue"
-            value={
-              order.deliveryDate
-                ? new Date(order.deliveryDate).toLocaleDateString()
-                : "Non définie"
-            }
-          />
-        </Card>
+       
+       {/* ================= INFOS ================= */}
+<Card
+  title="Informations générales"
+  icon="information-circle-outline"
+  style={{ marginHorizontal: 20 }}
+  rightAction={
+    <TouchableOpacity
+      activeOpacity={0.7}
+     onPress={() => Alert.alert("Info", "Fonctionnalité à venir")}
+      style={{
+        padding: 6,
+        borderRadius: 20,
+        backgroundColor: "#F3F4F6",
+      }}
+    >
+      <Ionicons name="create-outline" size={18} color="#374151" />
+    </TouchableOpacity>
+  }
+>
+  <InfoRow label="Vêtement" value={order.title || "-"} />
+  <InfoRow
+    label="Date commande"
+    value={new Date(order.orderDate).toLocaleDateString()}
+  />
+  <InfoRow
+    label="Livraison prévue"
+    value={
+      order.deliveryDate
+        ? new Date(order.deliveryDate).toLocaleDateString()
+        : "Non définie"
+    }
+  />
+</Card>
 
         {/* ================= ARTICLES ================= */}
         <FlatList
@@ -90,7 +110,24 @@ export default function OrderDetailsScreen() {
             const images = [item.modelImage, item.fabricImage].filter(Boolean) as string[];
 
             return (
-              <Card key={item.id} title={item.clothType} icon="shirt-outline">
+              <Card
+  key={item.id}
+  title={item.clothType}
+  icon="shirt-outline"
+  rightAction={
+    <TouchableOpacity
+      onPress={() => Alert.alert("Info", "Fonctionnalité à venir")}
+      style={{
+        padding: 6,
+        borderRadius: 20,
+        backgroundColor: "#F3F4F6",
+      }}
+      
+    >
+      <Ionicons name="create-outline" size={18} color="#374151" />
+    </TouchableOpacity>
+  }
+>
                 {/* Images côte à côte */}
                 {images.length > 0 ? (
                   <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
@@ -142,30 +179,93 @@ export default function OrderDetailsScreen() {
         />
 
         {/* ================= NOTES ================= */}
-        <Card title="Notes du couturier" icon="document-text-outline">
+        <Card title="Notes du couturier" icon="document-text-outline" style={{ marginHorizontal: 20 }}>
           <ThemedText style={styles.noteText}>
             {order.notes ? order.notes : "Aucune note ajoutée"}
           </ThemedText>
         </Card>
 
-        {/* ================= ACTIONS ================= */}
+          {/* ================= ACTIONS ================= */}
         <View style={styles.actions}>
-          <PrimaryButton title="Modifier la commande" />
+          <TouchableOpacity
+  style={[
+    styles.secondaryBtn,
+    (order.status === "in_progress" || order.status === "delivered") && {
+      opacity: 0.5,
+    },
+  ]}
+  disabled={order.status === "in_progress" || order.status === "delivered"}
+  onPress={() => {
+    Alert.alert(
+      "Confirmation",
+      "Voulez-vous marquer cette commande comme en cours de traitement ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Oui",
+          onPress: () => {
+            try {
+              markOrderAsProcessing(order.id);
+              Alert.alert(
+                "Succès",
+                "La commande est maintenant en cours de traitement."
+              );
+              setOrder({ ...order, status: "in_progress" });
+            } catch (error) {
+              Alert.alert(
+                "Erreur",
+                "Impossible de mettre à jour la commande."
+              );
+            }
+          },
+        },
+      ]
+    );
+  }}
+>
+  <Ionicons
+    name="construct-outline"
+    size={18}
+    color={Colors.light.tint}
+  />
+  <ThemedText style={styles.secondaryText}>
+    Marquer en cours
+  </ThemedText>
+</TouchableOpacity>
 
+          {/* Bouton Marquer comme livrée */}
           <TouchableOpacity
             style={[
               styles.secondaryBtn,
-              order.status === "livrée" && { opacity: 0.5 },
+              order.status === "delivered" && { opacity: 0.5 },
             ]}
-            disabled={order.status === "livrée"}
+            disabled={order.status === "delivered"}
             onPress={() => {
-              try {
-                markOrderAsDelivered(order.id);
-                Alert.alert("Succès", "La commande a été marquée comme livrée.");
-                setOrder({ ...order, status: "livrée" }); // met à jour l'UI
-              } catch (error) {
-                Alert.alert("Erreur", "Impossible de mettre à jour la commande.");
-              }
+              Alert.alert(
+                "Confirmation",
+                "Voulez-vous vraiment marquer cette commande comme livrée ?",
+                [
+                  { text: "Annuler", style: "cancel" },
+                  {
+                    text: "Oui",
+                    onPress: () => {
+                      try {
+                        markOrderAsDelivered(order.id);
+                        Alert.alert(
+                          "Succès",
+                          "La commande a été marquée comme livrée."
+                        );
+                        setOrder({ ...order, status: "delivered" }); // met à jour l'UI
+                      } catch (error) {
+                        Alert.alert(
+                          "Erreur",
+                          "Impossible de mettre à jour la commande."
+                        );
+                      }
+                    },
+                  },
+                ]
+              );
             }}
           >
             <Ionicons
@@ -173,9 +273,7 @@ export default function OrderDetailsScreen() {
               size={18}
               color={Colors.light.tint}
             />
-            <ThemedText style={styles.secondaryText}>
-              Marquer comme livrée
-            </ThemedText>
+            <ThemedText style={styles.secondaryText}>Marquer comme livrée</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -195,17 +293,34 @@ export default function OrderDetailsScreen() {
 function Card({
   title,
   icon,
+  rightAction,
   children,
+  style,
 }: {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
+  rightAction?: React.ReactNode;
   children: React.ReactNode;
+  style?: object;
 }) {
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Ionicons name={icon} size={18} color={Colors.light.tint} />
-        <ThemedText style={styles.cardTitle}>{title}</ThemedText>
+    <View style={[styles.card, style]}>
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {/* Partie gauche */}
+        <View style={styles.cardHeader}>
+          <Ionicons name={icon} size={18} color={Colors.light.tint} />
+          <ThemedText style={styles.cardTitle}>{title}</ThemedText>
+        </View>
+
+        {/* Partie droite */}
+        {rightAction && <View>{rightAction}</View>}
       </View>
       {children}
     </View>
@@ -305,4 +420,20 @@ const styles = StyleSheet.create({
   },
 
   secondaryText: { color: Colors.light.tint, fontWeight: "600", fontSize: 14 },
+
+  editBtn: {
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 6, // espace entre l'icône et le texte
+  padding: 14,
+  borderRadius: 14,
+  backgroundColor: Colors.light.tint, // orange
+},
+
+editText: {
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: 14,
+},
 });

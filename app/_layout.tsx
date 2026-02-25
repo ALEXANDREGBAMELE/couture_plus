@@ -1,11 +1,11 @@
 import { Colors } from "@/constants/theme";
-import { initTables, resetDatabase } from "@/database/orderRepository";
+import { initTables } from "@/database/orderRepository";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 
 export default function RootLayout() {
   useEffect(() => {
-    resetDatabase();
+    // resetDatabase();
     initTables();
   }, []);
 

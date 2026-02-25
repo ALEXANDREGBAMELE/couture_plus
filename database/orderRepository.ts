@@ -1,37 +1,6 @@
 import uuid from 'react-native-uuid';
 import { db } from './database';
 
-// export type OrderItemLocal = {
-//   id: string;
-//   clothType: string;
-//   modelImage?: string | null;
-//   fabricImage?: string | null;
-//   orderId: string;
-// };
-
-// export type MeasurementLocal = {
-//   id: string;
-//   label: string;
-//   value: number;
-//   orderItemId: string;
-// };
-
-// export type OrderDetails = {
-//   id: string;
-//   status: string;
-//   orderDate: string;
-//   deliveryDate?: string;
-//   notes?: string;
-//   clientName: string;
-//   clientPhone: string;
-//   orderItems: {
-//     id: string;
-//     clothType: string;
-//     modelImage?: { uri: string };
-//     fabricImage?: { uri: string };
-//     measurements: MeasurementLocal[];
-//   }[];
-// };
 
 export type OrderItemLocal = {
   id: string;
@@ -67,10 +36,11 @@ export type OrderDetails = {
   }[];
 };
 
-export type OrderStatus =
-  | "new"
-  | "in_progress"
-  | "delivered";
+export enum OrderStatus {
+  NEW = "new",
+  IN_PROGRESS = "in_progress",
+  DELIVERED = "delivered",
+}
 // ===============================
 // INIT TABLES
 // ===============================
@@ -328,7 +298,16 @@ export const deleteOrderOffline = (id: string) => {
 
 export const markOrderAsDelivered = (id: string): void => {
   try {
-    db.runSync(`UPDATE orders SET status = ? WHERE id = ?`, ["delivered", id]);
+    db.runSync(`UPDATE orders SET status = ? WHERE id = ?`, [OrderStatus.DELIVERED, id]);
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la commande :", error);
+    throw error;
+  }
+};
+
+export const markOrderAsProcessing = (id: string): void => {
+  try {
+    db.runSync(`UPDATE orders SET status = ? WHERE id = ?`, [OrderStatus.IN_PROGRESS, id]);
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la commande :", error);
     throw error;
