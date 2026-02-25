@@ -19,7 +19,7 @@ import { PrimaryButton } from "@/components/ui/primaryButton";
 import { Colors } from "@/constants/theme";
 import { createOrderOffline } from "@/database/orderRepository";
 import { useRouter } from "expo-router";
-/* ===================== MESURES ===================== */
+
 /* ===================== MESURES ===================== */
 const MEASUREMENT_LABELS: Record<string, string> = {
   chest: "Poitrine",
@@ -52,65 +52,13 @@ const MEASUREMENT_LABELS: Record<string, string> = {
 };
 
 const MEASURES_BY_TYPE: Record<string, string[]> = {
-  robe: [
-    "chest",
-    "waist",
-    "hip",
-    "dress_length",
-    "bust_height",
-    "bust_distance",
-    "shoulder",
-    "sleeve_length",
-  ],
-  pantalon: [
-    "waist",
-    "hip",
-    "pant_length",
-    "inseam",
-    "thigh",
-    "knee",
-    "bottom",
-    "front_rise",
-    "back_rise",
-  ],
-  chemise: [
-    "chest",
-    "waist",
-    "shoulder",
-    "sleeve_length",
-    "neck",
-    "back_width",
-  ],
-  veste: [
-    "chest",
-    "waist",
-    "shoulder",
-    "sleeve_length",
-    "jacket_length",
-  ],
-  boubou: [
-    "chest",
-    "waist",
-    "hip",
-    "boubou_length",
-    "sleeve_length",
-    "shoulder",
-  ],
-  jupe: [
-    "waist",
-    "hip",
-    "skirt_length",
-    "skirt_waist",
-    "skirt_hip",
-  ],
-  camisole: [
-    "chest",
-    "waist",
-    "hip",
-    "camisole_length",
-    "bust_height",
-    "bust_distance",
-  ],
+  robe: ["chest","waist","hip","dress_length","bust_height","bust_distance","shoulder","sleeve_length"],
+  pantalon: ["waist","hip","pant_length","inseam","thigh","knee","bottom","front_rise","back_rise"],
+  chemise: ["chest","waist","shoulder","sleeve_length","neck","back_width"],
+  veste: ["chest","waist","shoulder","sleeve_length","jacket_length"],
+  boubou: ["chest","waist","hip","boubou_length","sleeve_length","shoulder"],
+  jupe: ["waist","hip","skirt_length","skirt_waist","skirt_hip"],
+  camisole: ["chest","waist","hip","camisole_length","bust_height","bust_distance"],
 };
 
 export default function CreateOrderScreen() {
@@ -119,12 +67,8 @@ export default function CreateOrderScreen() {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [deliveryDate, setDeliveryDate] = useState<Date>(new Date());
-  // const [showDatePicker, setShowDatePicker] = useState(false);
-  // const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
-
   const [notes, setNotes] = useState("");
-
   const [currentType, setCurrentType] = useState<string | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
 
@@ -162,7 +106,7 @@ export default function CreateOrderScreen() {
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
               quality: 0.7,
             });
-            if (!result.canceled) {
+            if (!result.canceled && result.assets?.[0]?.uri) {
               const uri = result.assets[0].uri;
               setOrderItems(prev =>
                 prev.map(item => (item.id === itemId ? { ...item, [field]: uri } : item))
@@ -177,7 +121,7 @@ export default function CreateOrderScreen() {
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
               quality: 0.7,
             });
-            if (!result.canceled) {
+            if (!result.canceled && result.assets?.[0]?.uri) {
               const uri = result.assets[0].uri;
               setOrderItems(prev =>
                 prev.map(item => (item.id === itemId ? { ...item, [field]: uri } : item))
@@ -217,49 +161,21 @@ export default function CreateOrderScreen() {
     );
   };
 
-  /* ================= DATE PICKER ================= */
-  // const onChangeDate = (event: any, selectedDate?: Date) => {
-  //   let currentDate: Date | undefined = selectedDate;
-
-  //   if (Platform.OS === "android") {
-  //     // Android : event.type indique si l'utilisateur a annulé ou validé
-  //     if (event.type === "dismissed") {
-  //       setShowDatePicker(false);
-  //       return;
-  //     }
-  //     currentDate = selectedDate || (event?.nativeEvent?.timestamp ? new Date(event.nativeEvent.timestamp) : undefined);
-  //     setShowDatePicker(false); // ferme le picker
-  //   }
-
-  //   // iOS : selectedDate contient la date choisie
-  //   if (currentDate) {
-  //     setDeliveryDate(currentDate);
-  //   }
-  // };
-
   const onChange = (event?: any, selectedDate?: Date) => {
     const currentDate = selectedDate || deliveryDate || new Date();
-    setShowPicker(Platform.OS === 'ios'); // Keep picker open on Android after selection
-    // setDate(currentDate);
-   
-     if (currentDate) {
-      setDeliveryDate(currentDate);
-    }
+    setShowPicker(Platform.OS === 'ios');
+    if (currentDate) setDeliveryDate(currentDate);
   };
-
-  // const showDatepicker = () => {
-  //   setShowPicker(true);
-  // };
 
   /* ================= ENREGISTRER ================= */
   const handleSaveOrder = () => {
     if (!clientName || orderItems.length === 0) {
-      alert("Veuillez remplir les champs obligatoires");
+      Alert.alert("Erreur", "Veuillez remplir les champs obligatoires");
       return;
     }
 
     const formattedItems = orderItems.map(item => ({
-      clothType: item.clothType,
+      clothType: item.clothType || "-",
       modelImage: item.modelImage,
       fabricImage: item.fabricImage,
       measurements: Object.entries(item.measurements).map(([label, value]) => ({
@@ -279,7 +195,7 @@ export default function CreateOrderScreen() {
 
     createOrderOffline(orderData as any);
 
-    alert("Commande enregistrée ✔️");
+    Alert.alert("Succès", "Commande enregistrée ✔️");
     router.push("/");
   };
 
@@ -287,8 +203,6 @@ export default function CreateOrderScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* <ThemedText style={styles.title}>Nouvelle commande</ThemedText> */}
-
         {/* ================= CLIENT ================= */}
         <Section title="Client" icon="person-outline">
           <Label text="Nom du client" required />
@@ -306,60 +220,24 @@ export default function CreateOrderScreen() {
             onChangeText={setClientPhone}
           />
 
-          {/* <View>
-            <Text>Selected Date: {date.toLocaleDateString()}</Text>
-            <Button onPress={showDatepicker} title="Select date" />
-            {showPicker && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={date}
-                mode="date" // Set mode to 'date' for a date picker
-                is24Hour={true}
-                display="default"
-                onChange={onChange}
-              />
-            )}  
-          </View> */}
-
-          /* ================= DATE PICKER ADAPTÉ ================= */
+          {/* ================= DATE PICKER ADAPTÉ ================= */}
           <View style={{ marginVertical: 10 }}>
             <Label text="Date de livraison" required />
-
             <TouchableOpacity
               style={styles.dateInput}
               onPress={() => setShowPicker(true)}
             >
               <Ionicons name="calendar-outline" size={18} color="#6B7280" />
-              <ThemedText style={{ marginLeft: 8, color: deliveryDate ? "#111" : "#6B7280" }}>
-                {/* <Text>
-                  {date
-                    ? date.toLocaleDateString("fr-FR")
-                    : "Sélectionner une date"}
-                </Text> */}
+              <ThemedText style={{ marginLeft: 8, color: "#111" }}>
                 {deliveryDate ? deliveryDate.toLocaleDateString("fr-FR") : "Sélectionner une date"}
               </ThemedText>
             </TouchableOpacity>
 
-            {/* {showPicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                minimumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  const currentDate = selectedDate || date;
-                  setShowPicker(Platform.OS === "ios"); // iOS : reste ouvert, Android : ferme
-                  setDate(currentDate);
-                  setDeliveryDate(currentDate); // stocke dans ton état principal pour l'enregistrement
-                }}
-              />
-            )} */}
-
             {showPicker && (
               <DateTimePicker
                 testID="dateTimePicker"
-                value={deliveryDate ? deliveryDate : new Date()}
-                mode="date" // Set mode to 'date' for a date picker
+                value={deliveryDate || new Date()}
+                mode="date"
                 is24Hour={true}
                 display="default"
                 onChange={onChange}
@@ -383,8 +261,7 @@ export default function CreateOrderScreen() {
                 <ThemedText
                   style={currentType === type ? styles.typeTextSelected : styles.typeText}
                 >
-                  
-                  {type.charAt(0).toUpperCase() + type.slice(1)} {/* Capitalise le premier lettre */}
+                  {(type ? type.charAt(0).toUpperCase() + type.slice(1) : "-")}
                 </ThemedText>
               </TouchableOpacity>
             ))}
@@ -397,10 +274,10 @@ export default function CreateOrderScreen() {
 
         {/* ================= MESURES & PHOTOS ================= */}
         {orderItems.map(item => (
-          <Section key={item.id} title={`Mesures - ${item.clothType}`} icon="resize-outline">
-            {MEASURES_BY_TYPE[item.clothType]?.map(key => (
+          <Section key={item.id} title={`Mesures - ${item.clothType || "-"}`} icon="resize-outline">
+            {MEASURES_BY_TYPE[item.clothType || ""]?.map(key => (
               <View key={key}>
-                <Label text={MEASUREMENT_LABELS[key]} required />
+                <Label text={MEASUREMENT_LABELS[key] || key} required />
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
@@ -415,7 +292,6 @@ export default function CreateOrderScreen() {
               image={item.modelImage}
               onPick={() => pickImage(item.id, "modelImage")}
             />
-
             <PhotoPicker
               label="Tissu"
               image={item.fabricImage}
@@ -438,7 +314,7 @@ function Section({ title, icon, children }: any) {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Ionicons name={icon} size={18} color={Colors.light.tint} />
-        <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+        <ThemedText style={styles.sectionTitle}>{title || "-"}</ThemedText>
       </View>
       {children}
     </View>
@@ -448,7 +324,7 @@ function Section({ title, icon, children }: any) {
 function Label({ text, required = false }: any) {
   return (
     <ThemedText style={styles.label}>
-      {text}
+      {text || "-"}
       {required && <ThemedText style={styles.required}> *</ThemedText>}
     </ThemedText>
   );
@@ -459,7 +335,11 @@ function PhotoPicker({ label, image, onPick }: any) {
     <View>
       <Label text={label} />
       <TouchableOpacity style={styles.photoBox} onPress={onPick}>
-        {image ? <Image source={{ uri: image }} style={styles.photo} /> : <Ionicons name="add" size={32} color="#9CA3AF" />}
+        {image ? (
+          <Image source={{ uri: image }} style={styles.photo} />
+        ) : (
+          <Ionicons name="add" size={32} color="#9CA3AF" />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -468,7 +348,6 @@ function PhotoPicker({ label, image, onPick }: any) {
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F3F4F6", paddingTop: 10 },
-  title: { fontSize: 26, fontWeight: "700", margin: 20, color: "#111" },
   section: {
     backgroundColor: "#fff",
     padding: 16,
