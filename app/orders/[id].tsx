@@ -84,7 +84,7 @@ export default function OrderDetailsScreen() {
             </TouchableOpacity>
           }
         >
-          <InfoRow label="Vêtement" value={order.title || "-"} />
+          {/* <InfoRow label="Vêtement" value={order.title || "-"} /> */}
           <InfoRow
             label="Date commande"
             value={new Date(order.orderDate).toLocaleDateString()}
