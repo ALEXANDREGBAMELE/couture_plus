@@ -17,6 +17,7 @@ import { getOrderById, markOrderAsDelivered, markOrderAsProcessing } from "@/dat
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
+import { MEASUREMENT_LABELS } from "../create";
 import { getStatusLabel } from "../index";
 
 export default function OrderDetailsScreen() {
@@ -165,7 +166,10 @@ export default function OrderDetailsScreen() {
                     keyExtractor={(m) => m.id}
                     contentContainerStyle={{ marginTop: 8, gap: 4 }}
                     renderItem={({ item: m }) => (
-                      <InfoRow label={m.label} value={m.value.toString()} />
+                      <InfoRow 
+  label={MEASUREMENT_LABELS[m.label] || m.label} 
+  value={m.value.toString()} 
+/>
                     )}
                   />
                 ) : (

@@ -21,7 +21,7 @@ import { createOrderOffline } from "@/database/orderRepository";
 import { useRouter } from "expo-router";
 
 /* ===================== MESURES ===================== */
-const MEASUREMENT_LABELS: Record<string, string> = {
+export const MEASUREMENT_LABELS: Record<string, string> = {
   chest: "Poitrine",
   waist: "Taille",
   hip: "Hanche",
