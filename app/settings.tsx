@@ -2,7 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
   StyleSheet,
-  View
+  View,
+  Linking,
+  TouchableOpacity,
+  Alert
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -12,10 +15,25 @@ import { Colors } from "@/constants/theme";
 export default function SettingsScreen() {
   const router = useRouter();
 
+  const openWhatsApp = async () => {
+    const phone = "0707193507";
+    const url = `https://wa.me/225${phone}`;
+
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert("Erreur", "Impossible d’ouvrir WhatsApp");
+    }
+  };
+
+  const callPhone = async () => {
+    const url = `tel:0707193507`;
+    await Linking.openURL(url);
+  };
+
   return (
     <ThemedView style={styles.container}>
-      {/* ================= HEADER ================= */}
-     
 
       {/* ================= SYNCHRO ================= */}
       <SettingCard
@@ -40,6 +58,40 @@ export default function SettingsScreen() {
         description="Atelier+ – La couture sans oubli"
         value="Version 1.0.0"
       />
+
+      {/* ================= SUPPORT ================= */}
+     <View style={styles.supportCard}>
+  <View style={styles.cardLeft}>
+    <View style={styles.iconWrapper}>
+      <Ionicons name="person-outline" size={22} color={Colors.light.tint} />
+    </View>
+
+    <View style={{ flex: 1, marginLeft: 10 }}>
+      <ThemedText style={styles.cardTitle}>
+        Besoin d’aide ?
+      </ThemedText>
+
+      <ThemedText style={styles.cardDescription}>
+        Alexandre GBAMELE{"\n"}
+        Consultant Développeur Web & Mobile{"\n"}
+        Disponible par appel ou WhatsApp
+      </ThemedText>
+    </View>
+  </View>
+
+  <View style={styles.actionsRow}>
+    <TouchableOpacity style={styles.actionButton} onPress={callPhone}>
+      <Ionicons name="call-outline" size={18} color="#fff" />
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.actionButton, { backgroundColor: "#25D366" }]}
+      onPress={openWhatsApp}
+    >
+      <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+    </TouchableOpacity>
+  </View>
+</View>
     </ThemedView>
   );
 }
@@ -98,19 +150,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 30,
-  },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-  },
-
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -125,11 +164,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  cardLeft: {
-    flexDirection: "row",
-    gap: 12,
-    flex: 1,
-  },
+
+
+
 
   iconWrapper: {
     width: 42,
@@ -146,15 +183,54 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
 
-  cardDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 2,
-  },
+
 
   cardValue: {
     fontSize: 13,
     color: Colors.light.tint,
     fontWeight: "600",
   },
+
+
+
+  actionButton: {
+    backgroundColor: Colors.light.tint,
+    padding: 10,
+    borderRadius: 8,
+  },
+
+  supportCard: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 16,
+  padding: 16,
+  marginTop: 20,
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowRadius: 6,
+  elevation: 2,
+  flexDirection: "row",       // alignement horizontal
+  justifyContent: "space-between",
+  alignItems: "flex-start",   // pour que le texte commence en haut
+},
+
+cardLeft: {
+  flexDirection: "row",
+  alignItems: "flex-start",
+  flex: 1,
+},
+
+// Texte
+cardDescription: {
+  fontSize: 13,
+  color: "#6B7280",
+  marginTop: 4,
+  flexShrink: 1,     // permet au texte de s'adapter à l'espace dispo
+  flexWrap: "wrap",  // autorise le retour à la ligne
+},
+
+actionsRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 12,
+},
 });
