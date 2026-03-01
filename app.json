@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/icon-atelier-plus.png",
         "backgroundImage": "./assets/images/icon-atelier-plus.png",
         "monochromeImage": "./assets/images/icon-atelier-plus.png"
       },
